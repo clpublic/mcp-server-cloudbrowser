@@ -1,1 +1,1 @@
-# mcp-server-cloudbrowser
+# Cloud browser MCP Server
