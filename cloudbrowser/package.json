@@ -8,7 +8,7 @@
   "bugs": "https://github.com/clpublic/mcp-server-cloudbrowser/issues",
   "type": "module",
   "bin": {
-    "mcp-server-browserbase": "dist/index.js"
+    "mcp-server-cloudbrowser": "dist/index.js"
   },
   "files": [
     "dist"
