@@ -59,7 +59,7 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
   try {
     // 发起请求
     const response = await fetch(
-      `http://localhost:8080/v2/cloudbrowser/api/session/start?apiKey=c713602e4b334b16b93a1dce7b6d2d5f&sessionId=c713602e4b334b16b93a1dce7b6d2d5f`,
+      `http://localhost:8080/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId}`,
       {
         method: "POST", // 根据实际情况可能需要调整请求方法
         headers: {
