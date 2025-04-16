@@ -1,0 +1,30 @@
+{
+  "name": "@clpublic/mcp-server-cloudbrowser",
+  "version": "0.1.1",
+  "description": "MCP server for browser automation using cloudbrowser",
+  "license": "MIT",
+  "author": "",
+  "homepage": "https://www.yunlogin.com",
+  "bugs": "https://github.com/clpublic/mcp-server-cloudbrowser/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-browserbase": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector dist/index.js"
+  },
+  "dependencies": {
+		"@modelcontextprotocol/sdk": "^1.0.3",
+    "puppeteer-core": "^23.9.0"
+  },
+  "devDependencies": {
+    "shx": "^0.3.4",
+    "typescript": "^5.6.2"
+  }
+}
