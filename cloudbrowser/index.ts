@@ -41,15 +41,16 @@ async function ensureBrowserSession(): Promise<{
   try {
     // If no session exists, create one
     if (!defaultBrowserSession) {
-      defaultBrowserSession = await createNewBrowserSession(process.env.SESSION_ID!, process.env.API_KEY!);
+      defaultBrowserSession = await createNewBrowserSession(
+        process.env.SESSION_ID!,
+        process.env.API_KEY!
+      );
       return defaultBrowserSession;
     }
 
     await defaultBrowserSession.page.evaluate(() => document.title);
     return defaultBrowserSession;
-
   } catch (error) {
-
     throw error;
   }
 }
@@ -59,7 +60,7 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
   try {
     // 发起请求
     const response = await fetch(
-      `http://localhost:8080/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId}`,
+      `https://cloud.yunlogin.com/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId}`,
       {
         method: "POST", // 根据实际情况可能需要调整请求方法
         headers: {
@@ -73,7 +74,9 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
+    server.notification({
+      method: "notifications/resources/list_changed",
+    });
     // 解析响应体
     const data = await response.json();
 
@@ -81,17 +84,19 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
     if (data.code === 200 && data.data && data.data.browserUrl) {
       return data.data.browserUrl;
     } else {
-      throw new Error(`Failed to get browserUrl. Response: ${JSON.stringify(data)}`);
+      throw new Error(
+        `Failed to get browserUrl. Response: ${JSON.stringify(data)}`
+      );
     }
   } catch (error) {
-    console.error('Error fetching browserUrl:', error);
+    console.error("Error fetching browserUrl:", error);
     throw error;
   }
 }
 
 async function createNewBrowserSession(sessionId: string, apiKey: string) {
   // 通过 fetch 获取 browserUrl
-  const connectUrl = await getBrowserUrl(sessionId, apiKey)
+  const connectUrl = await getBrowserUrl(sessionId, apiKey);
 
   const browser = await puppeteer.connect({
     browserWSEndpoint: connectUrl,
@@ -106,7 +111,7 @@ async function createNewBrowserSession(sessionId: string, apiKey: string) {
 // 4. Tool Definitions
 const TOOLS: Tool[] = [
   {
-    name: "cloudbrowser_navigate",
+    name: "yunbrowser_navigate", // 导航到指定 URL
     description: "Navigate to a URL",
     inputSchema: {
       type: "object",
@@ -117,7 +122,7 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "cloudbrowser_evaluate",
+    name: "yunbrowser_evaluate", // 执行 JavaScript 代码
     description: "Evaluate JavaScript in the browser",
     inputSchema: {
       type: "object",
@@ -128,17 +133,17 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "cloudbrowser_get_current_url",
+    name: "yunbrowser_get_current_url", // 获取当前 URL
     description: "Retrieve the current URL of the browser page",
     inputSchema: {
       type: "object",
-      properties: {
-      },
+      properties: {},
     },
   },
   {
-    name: "cloudbrowser_screenshot",
-    description: "Takes a screenshot of the current page. Use this tool to learn where you are on the page when controlling the browser with Stagehand. Only use this tool when the other tools are not sufficient to get the information you need.",
+    name: "yunbrowser_screenshot", // 截图
+    description:
+      "Take a screenshot of the current page or a specific element",
     inputSchema: {
       type: "object",
       properties: {
@@ -150,7 +155,7 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "cloudbrowser_click",
+    name: "yunbrowser_click", // 点击元素
     description: "Click an element on the page",
     inputSchema: {
       type: "object",
@@ -164,7 +169,21 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "cloudbrowser_fill",
+    name: "yunbrowser_hover", // 点击元素
+    description: "Hover an element on the page",
+    inputSchema: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "CSS selector for element to hover",
+        },
+      },
+      required: ["selector"],
+    },
+  },
+  {
+    name: "yunbrowser_fill", // 填充输入框
     description: "Fill out an input field",
     inputSchema: {
       type: "object",
@@ -179,7 +198,7 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "cloudbrowser_get_text",
+    name: "yunbrowser_get_text", // 获取文本内容
     description: "Extract all text content from the current page",
     inputSchema: {
       type: "object",
@@ -198,15 +217,18 @@ async function handleToolCall(
     let session: { browser: Browser; page: Page } | undefined;
 
     // For tools that don't need a session, skip session check
-    if (!["cloudbrowser_create_session"].includes(name)) {
-        // Use or create the default session
-        session = await ensureBrowserSession();
+    if (!["yunbrowser_create_session"].includes(name)) {
+      // Use or create the default session
+      session = await ensureBrowserSession();
     }
 
     //console.info(`Handling tool call: ${name}`, args);
     switch (name) {
-      case "cloudbrowser_navigate":
-        await session!.page.goto(args.url);
+      case "yunbrowser_navigate":
+        await session!.page.goto(args.url, {
+          timeout: 30000,
+          waitUntil: "load",
+        });
         return {
           content: [
             {
@@ -217,7 +239,7 @@ async function handleToolCall(
           isError: false,
         };
 
-      case "cloudbrowser_evaluate":
+      case "yunbrowser_evaluate":
         try {
           const result = await session!.page.evaluate(args.script);
           return {
@@ -228,21 +250,22 @@ async function handleToolCall(
               },
             ],
             isError: false,
-          }
+          };
         } catch (error) {
           return {
             content: [
               {
                 type: "text",
-                text: `Failed to Evaluated script: ${args.script}: ${(error as Error).message}`,
+                text: `Failed to Evaluated script: ${args.script}: ${
+                  (error as Error).message
+                }`,
               },
             ],
             isError: true,
           };
         }
 
-
-      case "cloudbrowser_get_current_url":
+      case "yunbrowser_get_current_url":
         const currentUrl = await session!.page.url();
         return {
           content: [
@@ -254,12 +277,10 @@ async function handleToolCall(
           isError: false,
         };
 
-      case "cloudbrowser_screenshot": {
-
+      case "yunbrowser_screenshot": {
         const screenshot = await session!.page.screenshot({
           encoding: "base64",
           fullPage: false,
-
         });
 
         if (!screenshot) {
@@ -295,7 +316,7 @@ async function handleToolCall(
         };
       }
 
-      case "cloudbrowser_click":
+      case "yunbrowser_click":
         try {
           await session!.page.click(args.selector);
           return {
@@ -312,20 +333,44 @@ async function handleToolCall(
             content: [
               {
                 type: "text",
-                text: `Failed to click ${args.selector}: ${(error as Error).message
-                  }`,
+                text: `Failed to click ${args.selector}: ${
+                  (error as Error).message
+                }`,
               },
             ],
             isError: true,
           };
         }
-
-      case "cloudbrowser_fill":
+      case "yunbrowser_hover":
+        try {
+          await session!.page.hover(args.selector);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Hovered: ${args.selector}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Failed to hover: ${args.selector}: ${
+                  (error as Error).message
+                }`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      case "yunbrowser_fill":
         try {
           await session!.page.waitForSelector(args.selector);
           await session!.page.type(args.selector, args.value);
           return {
-
             content: [
               {
                 type: "text",
@@ -333,41 +378,43 @@ async function handleToolCall(
               },
             ],
             isError: false,
-
           };
         } catch (error) {
           return {
             content: [
               {
                 type: "text",
-                text: `Failed to fill ${args.selector}: ${(error as Error).message
-                  }`,
+                text: `Failed to fill ${args.selector}: ${
+                  (error as Error).message
+                }`,
               },
             ],
             isError: true,
           };
         }
 
-      case "cloudbrowser_get_text": {
+      case "yunbrowser_get_text": {
         try {
-          const bodyText = await session!.page.evaluate(() => document.body.innerText);
+          const bodyText = await session!.page.evaluate(
+            () => document.body.innerText
+          );
           const content = bodyText
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => {
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => {
               if (!line) return false;
 
               if (
-                (line.includes('{') && line.includes('}')) ||
-                line.includes('@keyframes') ||                         // Remove CSS animations
-                line.match(/^\.[a-zA-Z0-9_-]+\s*{/) ||               // Remove CSS lines starting with .className {
-                line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/)  // Remove lines like "color: blue;" or "margin: 10px;"
+                (line.includes("{") && line.includes("}")) ||
+                line.includes("@keyframes") || // Remove CSS animations
+                line.match(/^\.[a-zA-Z0-9_-]+\s*{/) || // Remove CSS lines starting with .className {
+                line.match(/^[a-zA-Z-]+:[a-zA-Z0-9%\s\(\)\.,-]+;$/) // Remove lines like "color: blue;" or "margin: 10px;"
               ) {
                 return false;
               }
               return true;
             })
-            .map(line => {
+            .map((line) => {
               return line.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
                 String.fromCharCode(parseInt(hex, 16))
               );
@@ -377,7 +424,7 @@ async function handleToolCall(
             content: [
               {
                 type: "text",
-                text: `Extracted content:\n${content.join('\n')}`,
+                text: `Extracted content:\n${content.join("\n")}`,
               },
             ],
             isError: false,
@@ -408,9 +455,7 @@ async function handleToolCall(
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(
-      `Failed to handle tool call: ${errorMsg}`
-    );
+    console.error(`Failed to handle tool call: ${errorMsg}`);
     return {
       content: [
         {
@@ -450,7 +495,6 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const uri = request.params.uri.toString();
-
 
   if (uri.startsWith("screenshot://")) {
     const name = uri.split("://")[1];
