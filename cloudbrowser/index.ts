@@ -60,7 +60,7 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
   try {
     // 发起请求
     const response = await fetch(
-      `https://cloud.yunlogin.com/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId}`,
+      `https://cloud.yunlogin.com/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId || ''}`,
       {
         method: "POST", // 根据实际情况可能需要调整请求方法
         headers: {
@@ -69,7 +69,7 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
         body: JSON.stringify({}), // 如果需要传递数据，可以在这里添加
       }
     );
-
+    
     // 检查响应状态
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
