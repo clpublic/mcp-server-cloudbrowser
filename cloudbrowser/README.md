@@ -18,7 +18,6 @@
       "command": "node",
       "args": ["path/to/mcp-server-cloudbrowser/cloudbrowser/dist/index.js"],
       "env": {
-        "SESSION_ID": "<YOUR_BROWSERBASE_SESSION_ID>",
         "API_KEY": "<YOUR_BROWSERBASE_API_KEY>"
       }
     }
