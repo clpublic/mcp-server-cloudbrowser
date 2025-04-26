@@ -1,16 +1,14 @@
 {
   "compilerOptions": {
-    "types": ["node"],
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
+    "target": "ES6", // 可选 ES5 / ES6
+    "module": "ESNext", // Webpack 会处理模块
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "moduleResolution": "node",
     "outDir": "dist",
-    "rootDir": "./"
+    "rootDir": "src",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "index.ts"],
   "exclude": ["node_modules"]

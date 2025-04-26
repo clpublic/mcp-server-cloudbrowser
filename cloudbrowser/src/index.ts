@@ -14,6 +14,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import puppeteer, { Browser, Page } from "puppeteer-core";
 
+/** 消息状态是否开启 */
+const NStaus = false;
 // Environment variables configuration
 const requiredEnvVars = {
   SESSION_ID: process.env.SESSION_ID,
@@ -47,20 +49,25 @@ async function ensureBrowserSession(): Promise<{
       );
       return defaultBrowserSession;
     }
-
-    await defaultBrowserSession.page.evaluate(() => document.title);
+    // await defaultBrowserSession.page.evaluate(() => document.title);
     return defaultBrowserSession;
   } catch (error) {
     throw error;
   }
 }
 
+const sendNotification = (params: any) => {
+  if (!NStaus) return;
+  server.notification(params);
+};
 // 3. Helper Functions
 async function getBrowserUrl(sessionId: string, apiKey: string) {
   try {
     // 发起请求
     const response = await fetch(
-      `https://cloud.yunlogin.com/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${sessionId || ''}`,
+      `https://cloud.yunlogin.com/v2/cloudbrowser/api/session/start?apiKey=${apiKey}&sessionId=${
+        sessionId || ""
+      }`,
       {
         method: "POST", // 根据实际情况可能需要调整请求方法
         headers: {
@@ -69,7 +76,7 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
         body: JSON.stringify({}), // 如果需要传递数据，可以在这里添加
       }
     );
-    
+
     // 检查响应状态
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,6 +102,10 @@ async function getBrowserUrl(sessionId: string, apiKey: string) {
 }
 
 async function createNewBrowserSession(sessionId: string, apiKey: string) {
+  sendNotification({
+    method: "tool.connect",
+    params: { sessionId, apiKey },
+  });
   // 通过 fetch 获取 browserUrl
   const connectUrl = await getBrowserUrl(sessionId, apiKey);
 
@@ -142,8 +153,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: "yunbrowser_screenshot", // 截图
-    description:
-      "Take a screenshot of the current page or a specific element",
+    description: "Take a screenshot of the current page or a specific element",
     inputSchema: {
       type: "object",
       properties: {
@@ -225,6 +235,28 @@ async function handleToolCall(
     //console.info(`Handling tool call: ${name}`, args);
     switch (name) {
       case "yunbrowser_navigate":
+        sendNotification({
+          method: "tool.goto",
+          params: {
+            msg: session!.page.isClosed(),
+          },
+        });
+        // 检查页面是否已关闭
+        if (session!.page.isClosed()) {
+          const pages = await session!.browser.pages();
+          /**
+           * 检查是否有页面
+           *
+           * 1. 如果有页面，使用第一个页面
+           * 2. 如果没有页面，创建一个新页面
+           */
+          if (pages.length > 0) {
+            session!.page = pages[0];
+          } else {
+            session!.page = await session!.browser.newPage();
+          }
+        }
+
         await session!.page.goto(args.url, {
           timeout: 30000,
           waitUntil: "load",
@@ -241,6 +273,18 @@ async function handleToolCall(
 
       case "yunbrowser_evaluate":
         try {
+          // 检查页面是否已关闭
+          if (session!.page.isClosed()) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Page has been closed`,
+                },
+              ],
+              isError: true,
+            };
+          }
           const result = await session!.page.evaluate(args.script);
           return {
             content: [
@@ -266,6 +310,18 @@ async function handleToolCall(
         }
 
       case "yunbrowser_get_current_url":
+        // 检查页面是否已关闭
+        if (session!.page.isClosed()) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Page has been closed`,
+              },
+            ],
+            isError: true,
+          };
+        }
         const currentUrl = await session!.page.url();
         return {
           content: [
@@ -278,6 +334,18 @@ async function handleToolCall(
         };
 
       case "yunbrowser_screenshot": {
+        // 检查页面是否已关闭
+        if (session!.page.isClosed()) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Page has been closed`,
+              },
+            ],
+            isError: true,
+          };
+        }
         const screenshot = await session!.page.screenshot({
           encoding: "base64",
           fullPage: false,
@@ -318,6 +386,18 @@ async function handleToolCall(
 
       case "yunbrowser_click":
         try {
+          // 检查页面是否已关闭
+          if (session!.page.isClosed()) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Page has been closed`,
+                },
+              ],
+              isError: true,
+            };
+          }
           await session!.page.click(args.selector);
           return {
             content: [
@@ -342,6 +422,18 @@ async function handleToolCall(
           };
         }
       case "yunbrowser_hover":
+        // 检查页面是否已关闭
+        if (session!.page.isClosed()) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Page has been closed`,
+              },
+            ],
+            isError: true,
+          };
+        }
         try {
           await session!.page.hover(args.selector);
           return {
@@ -367,9 +459,22 @@ async function handleToolCall(
           };
         }
       case "yunbrowser_fill":
+        // 检查页面是否已关闭
+        if (session!.page.isClosed()) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Page has been closed`,
+              },
+            ],
+            isError: true,
+          };
+        }
         try {
           await session!.page.waitForSelector(args.selector);
           await session!.page.type(args.selector, args.value);
+
           return {
             content: [
               {
@@ -395,6 +500,18 @@ async function handleToolCall(
 
       case "yunbrowser_get_text": {
         try {
+          // 检查页面是否已关闭
+          if (session!.page.isClosed()) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Page has been closed`,
+                },
+              ],
+              isError: true,
+            };
+          }
           const bodyText = await session!.page.evaluate(
             () => document.body.innerText
           );

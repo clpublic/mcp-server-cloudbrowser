@@ -1,12 +1,11 @@
 {
   "name": "@clpublic/mcp-server-cloudbrowser",
-  "version": "0.1.1",
+  "version": "0.1.7",
   "description": "MCP server for browser automation using cloudbrowser",
-  "license": "MIT",
+  "license": "ISC",
   "author": "",
   "homepage": "https://www.yunlogin.com",
   "bugs": "https://github.com/clpublic/mcp-server-cloudbrowser/issues",
-  "type": "module",
   "bin": {
     "mcp-server-cloudbrowser": "dist/index.js"
   },
@@ -14,18 +13,25 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && shx chmod +x dist/*.js",
-    "prepare": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack && shx chmod +x dist/*.js",
     "watch": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector dist/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector dist/index.js",
+    "inspector2": "set API_KEY=202a53b905a743d0a03645b614a83698&& npx @modelcontextprotocol/inspector dist/index.js",
+    "inspector3": "set API_KEY=202a53b905a743d0a03645b614a83698&& npx @modelcontextprotocol/inspector src/index.ts"
   },
+  "keywords": [],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.3",
-    "puppeteer-core": "^23.9.0"
+    "bufferutil": "^4.0.9",
+    "puppeteer-core": "^23.9.0",
+    "utf-8-validate": "^6.0.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
     "shx": "^0.3.4",
-    "typescript": "^5.6.2"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.6.2",
+    "webpack-cli": "^6.0.1"
   }
 }
