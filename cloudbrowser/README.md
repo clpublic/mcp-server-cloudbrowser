@@ -19,7 +19,8 @@
       "args": ["path/to/mcp-server-cloudbrowser/cloudbrowser/dist/index.js"],
       "env": {
         "API_KEY": "<YOUR_BROWSERBASE_API_KEY>"
-      }
+      },
+      "transportType": "stdio"
     }
   }
 }
@@ -28,6 +29,28 @@
 3. Restart your Claude Desktop app and you should see the tools available clicking the 🔨 icon.
 
 4. Start using the tools! Below is an image of Claude closing a browser session.
+
+### Using npm
+
+```json
+{
+  "mcpServers": {
+    "cloudbrowser": {
+      "command": "cmd",
+      "args": [
+        "/c", 
+        "npx", 
+        "-y", 
+        "@browsercloud/mcp-server-cloudbrowser"
+      ],
+      "env": {
+        "API_KEY": "<YOUR_BROWSERBASE_API_KEY>"
+      },
+      "transportType": "stdio"
+    }
+  }
+}
+```
 
 ## Tools
 
